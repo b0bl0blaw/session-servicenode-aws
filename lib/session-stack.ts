@@ -14,6 +14,8 @@ export class SessionStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    const serviceName = "sessionNode1";
+
     // @TODO use environment variable?
     const asFargate = false;
     const vpc = this.createVpc();
@@ -21,8 +23,6 @@ export class SessionStack extends cdk.Stack {
     const ecsCluster = this.createCluster(vpc, asFargate);
     const taskRole = this.createEcsTaskRole(efsFilesystem);
     const executionRole = this.createEcsExecutionRole(efsFilesystem);
-
-    const serviceName = "sessionNode1";
     const taskDefinition = this.createTaskDefinition(
       serviceName,
       asFargate,
@@ -290,9 +290,6 @@ export class SessionStack extends cdk.Stack {
         vpc: vpc,
       },
     );
-
-    // @TODO Restrict this
-    ecsSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22));
 
     ecsSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(1090));
 
