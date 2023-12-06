@@ -47,6 +47,8 @@ export class SessionStack extends cdk.Stack {
       this.createEc2Service(serviceName, vpc, ecsCluster, taskDefinition, [
         securityGroup,
       ]);
+
+      // this.createElasticIp(service);
     }
   }
 
@@ -114,8 +116,9 @@ export class SessionStack extends cdk.Stack {
             InstanceSize.SMALL,
           ),
           machineImage: MachineImage.lookup({
-            name: "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-arm64-server-20220420",
+            name: "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-arm64-server-20231128",
           }),
+          associatePublicIpAddress: true,
         },
       );
 
@@ -325,12 +328,11 @@ export class SessionStack extends cdk.Stack {
     cluster: ecs.ICluster,
     sessionTaskDefinition: ecs.TaskDefinition,
     ecsSecurityGroups: ec2.SecurityGroup[],
-  ) {
+  ): ecs.Ec2Service {
     return new ecs.Ec2Service(this, "sessionEc2Service", {
       cluster: cluster,
       serviceName: serviceName,
       taskDefinition: sessionTaskDefinition,
-      assignPublicIp: true,
       vpcSubnets: vpc.selectSubnets(),
       desiredCount: 0,
       securityGroups: ecsSecurityGroups,
