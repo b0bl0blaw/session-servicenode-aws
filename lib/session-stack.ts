@@ -114,7 +114,7 @@ export class SessionStack extends cdk.Stack {
             InstanceSize.SMALL,
           ),
           machineImage: MachineImage.lookup({
-            name: "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-arm64-server-20231128",
+            name: "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20231128",
           }),
           associatePublicIpAddress: true,
         },
