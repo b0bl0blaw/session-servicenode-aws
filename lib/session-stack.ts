@@ -337,7 +337,7 @@ export class SessionStack extends cdk.Stack {
       serviceName: serviceName,
       taskDefinition: sessionTaskDefinition,
       vpcSubnets: vpc.selectSubnets(),
-      desiredCount: 0,
+      desiredCount: 1,
       securityGroups: ecsSecurityGroups,
     });
   }
@@ -355,7 +355,7 @@ export class SessionStack extends cdk.Stack {
       taskDefinition: sessionTaskDefinition,
       assignPublicIp: true,
       vpcSubnets: vpc.selectSubnets(),
-      desiredCount: 0,
+      desiredCount: 1,
       securityGroups: ecsSecurityGroups,
     });
   }
