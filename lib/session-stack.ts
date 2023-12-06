@@ -14,10 +14,15 @@ export class SessionStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const serviceName = "sessionNode1";
-
     // @TODO use environment variable?
     const asFargate = false;
+    const serviceNodeId = 1;
+
+    let serviceName = "ec2Node" + serviceNodeId;
+    if (asFargate) {
+      serviceName = "fargateNode" + serviceNodeId;
+    }
+
     const vpc = this.createVpc();
     const efsFilesystem = this.createEfs(vpc);
     const ecsCluster = this.createCluster(vpc, asFargate);
