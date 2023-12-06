@@ -3,7 +3,7 @@ import { Construct } from "constructs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import { InstanceClass, InstanceSize, MachineImage } from "aws-cdk-lib/aws-ec2";
 import * as ecs from "aws-cdk-lib/aws-ecs";
-import { Protocol } from "aws-cdk-lib/aws-ecs";
+import { Capability, Protocol } from "aws-cdk-lib/aws-ecs";
 import * as efs from "aws-cdk-lib/aws-efs";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { AnyPrincipal, Effect } from "aws-cdk-lib/aws-iam";
@@ -245,6 +245,13 @@ export class SessionStack extends cdk.Stack {
       readOnly: false,
     });
 
+    const linuxParameters = new ecs.LinuxParameters(
+      this,
+      "sessionLokinetContainerParameters",
+    );
+
+    linuxParameters.addCapabilities(Capability.NET_ADMIN);
+
     const lokinetContainer = sessionTaskDefinition.addContainer(
       "session-lokinet-server",
       {
@@ -270,6 +277,7 @@ export class SessionStack extends cdk.Stack {
           ECS_SERVICE_NAME: serviceName,
           ECS_CLUSTER_NAME: cluster.clusterName,
         },
+        linuxParameters: linuxParameters,
       },
     );
 
