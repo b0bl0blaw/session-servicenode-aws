@@ -6,7 +6,7 @@ import * as ecs from "aws-cdk-lib/aws-ecs";
 import { Capability, Protocol } from "aws-cdk-lib/aws-ecs";
 import * as efs from "aws-cdk-lib/aws-efs";
 import * as iam from "aws-cdk-lib/aws-iam";
-import { AnyPrincipal, Effect } from "aws-cdk-lib/aws-iam";
+import { AnyPrincipal, Effect, Role } from "aws-cdk-lib/aws-iam";
 import * as autoscaling from "aws-cdk-lib/aws-autoscaling";
 import * as logs from "aws-cdk-lib/aws-logs";
 
@@ -117,6 +117,11 @@ export class SessionStack extends cdk.Stack {
             name: "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20231128",
           }),
           associatePublicIpAddress: true,
+          role: Role.fromRoleName(
+            this,
+            "sessionInstanceProfile",
+            "AmazonSSMRoleForInstancesQuickSetup",
+          ),
         },
       );
 
