@@ -47,8 +47,6 @@ export class SessionStack extends cdk.Stack {
       this.createEc2Service(serviceName, vpc, ecsCluster, taskDefinition, [
         securityGroup,
       ]);
-
-      // this.createElasticIp(service);
     }
   }
 
