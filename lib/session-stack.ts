@@ -111,9 +111,15 @@ export class SessionStack extends cdk.Stack {
 
     if (!asFargate) {
       const sheBang = `
+        for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done && \
+        curl -O https://download.docker.com/linux/ubuntu/dists/jammy/pool/stable/amd64/containerd.io_1.6.25-1_amd64.deb && \
+        curl -O https://download.docker.com/linux/ubuntu/dists/jammy/pool/stable/amd64/docker-ce_24.0.7-1~ubuntu.22.04~jammy_amd64.deb && \
+        curl -O https://download.docker.com/linux/ubuntu/dists/jammy/pool/stable/amd64/docker-ce-cli_24.0.7-1~ubuntu.22.04~jammy_amd64.deb && \
+        curl -O https://download.docker.com/linux/ubuntu/dists/jammy/pool/stable/amd64/docker-buildx-plugin_0.11.2-1~ubuntu.22.04~jammy_amd64.deb && \
         curl -O https://s3.us-west-2.amazonaws.com/amazon-ecs-agent-us-west-2/amazon-ecs-init-latest.amd64.deb && \
+        sudo dpkg -i ./containerd.io_1.6.25-1_amd64.deb ./docker-ce_24.0.7-1~ubuntu.22.04~jammy_amd64.deb ./docker-ce-cli_24.0.7-1~ubuntu.22.04~jammy_amd64.deb ./docker-buildx-plugin_0.11.2-1~ubuntu.22.04~jammy_amd64.deb && \
         sudo dpkg -i amazon-ecs-init-latest.amd64.deb && \
-        export ECS_CLUSTER=${clusterName} && \
+        touch /etc/ecs/ecs.config && echo ECS_CLUSTER=sessionCluster >> /etc/ecs/ecs.config && \
         sudo systemctl start ecs
       `;
 
