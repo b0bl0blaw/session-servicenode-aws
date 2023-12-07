@@ -1,7 +1,12 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
-import { InstanceClass, InstanceSize, MachineImage } from "aws-cdk-lib/aws-ec2";
+import {
+  AmazonLinuxCpuType,
+  InstanceClass,
+  InstanceSize,
+  MachineImage,
+} from "aws-cdk-lib/aws-ec2";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import { Capability, Protocol } from "aws-cdk-lib/aws-ecs";
 import * as efs from "aws-cdk-lib/aws-efs";
@@ -110,23 +115,6 @@ export class SessionStack extends cdk.Stack {
     });
 
     if (!asFargate) {
-      const sheBang = `
-        for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done && \
-        curl -O https://download.docker.com/linux/ubuntu/dists/jammy/pool/stable/amd64/containerd.io_1.6.25-1_amd64.deb && \
-        curl -O https://download.docker.com/linux/ubuntu/dists/jammy/pool/stable/amd64/docker-ce_24.0.7-1~ubuntu.22.04~jammy_amd64.deb && \
-        curl -O https://download.docker.com/linux/ubuntu/dists/jammy/pool/stable/amd64/docker-ce-cli_24.0.7-1~ubuntu.22.04~jammy_amd64.deb && \
-        curl -O https://download.docker.com/linux/ubuntu/dists/jammy/pool/stable/amd64/docker-buildx-plugin_0.11.2-1~ubuntu.22.04~jammy_amd64.deb && \
-        curl -O https://s3.us-west-2.amazonaws.com/amazon-ecs-agent-us-west-2/amazon-ecs-init-latest.amd64.deb && \
-        sudo dpkg -i ./containerd.io_1.6.25-1_amd64.deb ./docker-ce_24.0.7-1~ubuntu.22.04~jammy_amd64.deb ./docker-ce-cli_24.0.7-1~ubuntu.22.04~jammy_amd64.deb ./docker-buildx-plugin_0.11.2-1~ubuntu.22.04~jammy_amd64.deb && \
-        sudo dpkg -i amazon-ecs-init-latest.amd64.deb && \
-        touch /etc/ecs/ecs.config && echo ECS_CLUSTER=sessionCluster >> /etc/ecs/ecs.config && \
-        sudo systemctl start ecs
-      `;
-
-      const userData = ec2.UserData.forLinux({
-        shebang: sheBang,
-      });
-
       const autoScalingGroup = new autoscaling.AutoScalingGroup(
         this,
         "sessionAutoScalingGroup",
@@ -137,8 +125,8 @@ export class SessionStack extends cdk.Stack {
             InstanceClass.T3,
             InstanceSize.MEDIUM,
           ),
-          machineImage: MachineImage.lookup({
-            name: "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20231128",
+          machineImage: MachineImage.latestAmazonLinux2023({
+            cpuType: AmazonLinuxCpuType.X86_64,
           }),
           associatePublicIpAddress: true,
           role: Role.fromRoleName(
@@ -146,7 +134,6 @@ export class SessionStack extends cdk.Stack {
             "sessionInstanceProfile",
             "AmazonSSMRoleForInstancesQuickSetup",
           ),
-          userData: userData,
         },
       );
 
