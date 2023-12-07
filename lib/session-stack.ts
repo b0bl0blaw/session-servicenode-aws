@@ -213,6 +213,7 @@ export class SessionStack extends cdk.Stack {
           },
         ],
         environment: {
+          AS_FARGATE: String(asFargate),
           EFS_FILE_SYSTEM_ID: efsFilesystem.fileSystemId,
           ECS_SERVICE_NAME: serviceName,
           ECS_CLUSTER_NAME: cluster.clusterName,
@@ -253,6 +254,7 @@ export class SessionStack extends cdk.Stack {
           },
         ],
         environment: {
+          AS_FARGATE: String(asFargate),
           EFS_FILE_SYSTEM_ID: efsFilesystem.fileSystemId,
           ECS_SERVICE_NAME: serviceName,
           ECS_CLUSTER_NAME: cluster.clusterName,
@@ -295,6 +297,7 @@ export class SessionStack extends cdk.Stack {
           },
         ],
         environment: {
+          AS_FARGATE: String(asFargate),
           EFS_FILE_SYSTEM_ID: efsFilesystem.fileSystemId,
           ECS_SERVICE_NAME: serviceName,
           ECS_CLUSTER_NAME: cluster.clusterName,
