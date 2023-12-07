@@ -14,7 +14,7 @@ export class SessionStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // @TODO use environment variable?
+    // @TODO use environment variables?
     const asFargate = false;
     const serviceNodeId = 1;
 
@@ -25,7 +25,7 @@ export class SessionStack extends cdk.Stack {
 
     const vpc = this.createVpc();
     const efsFilesystem = this.createEfs(vpc);
-    const ecsCluster = this.createCluster(vpc, asFargate);
+    const ecsCluster = this.createCluster(serviceName, vpc, asFargate);
     const taskRole = this.createEcsTaskRole(efsFilesystem);
     const executionRole = this.createEcsExecutionRole(efsFilesystem);
     const taskDefinition = this.createTaskDefinition(
@@ -97,18 +97,36 @@ export class SessionStack extends cdk.Stack {
     return fileSystem;
   }
 
-  private createCluster(vpc: ec2.IVpc, asFargate: boolean): ecs.Cluster {
+  private createCluster(
+    serviceName: string,
+    vpc: ec2.IVpc,
+    asFargate: boolean,
+  ): ecs.Cluster {
+    const clusterName = "sessionCluster";
+
     const cluster = new ecs.Cluster(this, "sessionCluster", {
-      clusterName: "sessionCluster",
+      clusterName: clusterName,
       vpc: vpc,
     });
 
     if (!asFargate) {
+      const sheBang = `
+        curl -O https://s3.us-west-2.amazonaws.com/amazon-ecs-agent-us-west-2/amazon-ecs-init-latest.amd64.deb && \
+        sudo dpkg -i amazon-ecs-init-latest.amd64.deb && \
+        export ECS_CLUSTER=${clusterName} && \
+        sudo systemctl start ecs
+      `;
+
+      const userData = ec2.UserData.forLinux({
+        shebang: sheBang,
+      });
+
       const autoScalingGroup = new autoscaling.AutoScalingGroup(
         this,
         "sessionAutoScalingGroup",
         {
           vpc: vpc,
+          autoScalingGroupName: serviceName,
           instanceType: ec2.InstanceType.of(
             InstanceClass.T3,
             InstanceSize.SMALL,
@@ -122,6 +140,7 @@ export class SessionStack extends cdk.Stack {
             "sessionInstanceProfile",
             "AmazonSSMRoleForInstancesQuickSetup",
           ),
+          userData: userData,
         },
       );
 
@@ -174,10 +193,7 @@ export class SessionStack extends cdk.Stack {
       },
     );
 
-    const serviceLogGroup = new logs.LogGroup(this, "sessionServiceLogGroup", {
-      logGroupName: "sessionLogGroup",
-    });
-
+    const serviceLogGroup = new logs.LogGroup(this, "sessionServiceLogGroup");
     const serviceNodeContainer = sessionTaskDefinition.addContainer(
       "session-service-node",
       {
