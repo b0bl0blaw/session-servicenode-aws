@@ -135,7 +135,7 @@ export class SessionStack extends cdk.Stack {
           autoScalingGroupName: serviceName,
           instanceType: ec2.InstanceType.of(
             InstanceClass.T3,
-            InstanceSize.SMALL,
+            InstanceSize.MEDIUM,
           ),
           machineImage: MachineImage.lookup({
             name: "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20231128",
