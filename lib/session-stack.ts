@@ -216,6 +216,7 @@ export class SessionStack extends cdk.Stack {
           EFS_FILE_SYSTEM_ID: efsFilesystem.fileSystemId,
           ECS_SERVICE_NAME: serviceName,
           ECS_CLUSTER_NAME: cluster.clusterName,
+          AWS_REGION: cluster.stack.region,
         },
       },
     );
@@ -255,6 +256,7 @@ export class SessionStack extends cdk.Stack {
           EFS_FILE_SYSTEM_ID: efsFilesystem.fileSystemId,
           ECS_SERVICE_NAME: serviceName,
           ECS_CLUSTER_NAME: cluster.clusterName,
+          AWS_REGION: cluster.stack.region,
         },
       },
     );
@@ -296,6 +298,7 @@ export class SessionStack extends cdk.Stack {
           EFS_FILE_SYSTEM_ID: efsFilesystem.fileSystemId,
           ECS_SERVICE_NAME: serviceName,
           ECS_CLUSTER_NAME: cluster.clusterName,
+          AWS_REGION: cluster.stack.region,
         },
         linuxParameters: linuxParameters,
       },
