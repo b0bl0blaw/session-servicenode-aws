@@ -1,24 +1,53 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
+import { InstanceClass, InstanceSize, MachineImage } from "aws-cdk-lib/aws-ec2";
 import * as ecs from "aws-cdk-lib/aws-ecs";
-import { Protocol } from "aws-cdk-lib/aws-ecs";
+import { Capability, Protocol } from "aws-cdk-lib/aws-ecs";
 import * as efs from "aws-cdk-lib/aws-efs";
 import * as iam from "aws-cdk-lib/aws-iam";
-import { AnyPrincipal, Effect } from "aws-cdk-lib/aws-iam";
+import { AnyPrincipal, Effect, Role } from "aws-cdk-lib/aws-iam";
+import * as autoscaling from "aws-cdk-lib/aws-autoscaling";
 import * as logs from "aws-cdk-lib/aws-logs";
 
 export class SessionStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    // @TODO use environment variables?
+    const asFargate = false;
+    const serviceNodeId = 1;
+
+    let serviceName = "ec2Node" + serviceNodeId;
+    if (asFargate) {
+      serviceName = "fargateNode" + serviceNodeId;
+    }
+
     const vpc = this.createVpc();
     const efsFilesystem = this.createEfs(vpc);
-    const ecsCluster = this.createCluster(vpc);
+    const ecsCluster = this.createCluster(serviceName, vpc, asFargate);
     const taskRole = this.createEcsTaskRole(efsFilesystem);
     const executionRole = this.createEcsExecutionRole(efsFilesystem);
+    const taskDefinition = this.createTaskDefinition(
+      serviceName,
+      asFargate,
+      ecsCluster,
+      efsFilesystem,
+      taskRole,
+      executionRole,
+    );
 
-    this.createService(vpc, ecsCluster, efsFilesystem, taskRole, executionRole);
+    const securityGroup = this.createSecurityGroup(vpc);
+
+    if (asFargate) {
+      this.createFargateService(serviceName, vpc, ecsCluster, taskDefinition, [
+        securityGroup,
+      ]);
+    } else {
+      this.createEc2Service(serviceName, vpc, ecsCluster, taskDefinition, [
+        securityGroup,
+      ]);
+    }
   }
 
   private createVpc(): ec2.Vpc {
@@ -68,28 +97,85 @@ export class SessionStack extends cdk.Stack {
     return fileSystem;
   }
 
-  private createCluster(vpc: ec2.IVpc): ecs.Cluster {
-    return new ecs.Cluster(this, "sessionCluster", {
-      clusterName: "sessionCluster",
+  private createCluster(
+    serviceName: string,
+    vpc: ec2.IVpc,
+    asFargate: boolean,
+  ): ecs.Cluster {
+    const clusterName = "sessionCluster";
+
+    const cluster = new ecs.Cluster(this, "sessionCluster", {
+      clusterName: clusterName,
       vpc: vpc,
     });
+
+    if (!asFargate) {
+      const sheBang = `
+        curl -O https://s3.us-west-2.amazonaws.com/amazon-ecs-agent-us-west-2/amazon-ecs-init-latest.amd64.deb && \
+        sudo dpkg -i amazon-ecs-init-latest.amd64.deb && \
+        export ECS_CLUSTER=${clusterName} && \
+        sudo systemctl start ecs
+      `;
+
+      const userData = ec2.UserData.forLinux({
+        shebang: sheBang,
+      });
+
+      const autoScalingGroup = new autoscaling.AutoScalingGroup(
+        this,
+        "sessionAutoScalingGroup",
+        {
+          vpc: vpc,
+          autoScalingGroupName: serviceName,
+          instanceType: ec2.InstanceType.of(
+            InstanceClass.T3,
+            InstanceSize.SMALL,
+          ),
+          machineImage: MachineImage.lookup({
+            name: "ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20231128",
+          }),
+          associatePublicIpAddress: true,
+          role: Role.fromRoleName(
+            this,
+            "sessionInstanceProfile",
+            "AmazonSSMRoleForInstancesQuickSetup",
+          ),
+          userData: userData,
+        },
+      );
+
+      const capacityProvider = new ecs.AsgCapacityProvider(
+        this,
+        "sessionCapacityProvider",
+        {
+          autoScalingGroup: autoScalingGroup,
+        },
+      );
+
+      cluster.addAsgCapacityProvider(capacityProvider);
+    }
+
+    return cluster;
   }
 
-  private createService(
-    vpc: ec2.IVpc,
+  private createTaskDefinition(
+    serviceName: string,
+    asFargate: boolean,
     cluster: ecs.ICluster,
     efsFilesystem: efs.IFileSystem,
     taskRole: iam.IRole,
     executionRole: iam.IRole,
-  ): ecs.FargateService {
-    const serviceName = "sessionNode1";
+  ): ecs.TaskDefinition {
     const volumeName = "efsVolume";
+    const compatibilityMode = asFargate
+      ? ecs.Compatibility.FARGATE
+      : ecs.Compatibility.EC2;
 
     const sessionTaskDefinition = new ecs.TaskDefinition(
       this,
       "sessionTaskDefinition",
       {
-        compatibility: ecs.Compatibility.FARGATE,
+        compatibility: compatibilityMode,
         networkMode: ecs.NetworkMode.AWS_VPC,
         family: "session",
         cpu: "1024",
@@ -107,10 +193,7 @@ export class SessionStack extends cdk.Stack {
       },
     );
 
-    const serviceLogGroup = new logs.LogGroup(this, "sessionServiceLogGroup", {
-      logGroupName: "sessionLogGroup",
-    });
-
+    const serviceLogGroup = new logs.LogGroup(this, "sessionServiceLogGroup");
     const serviceNodeContainer = sessionTaskDefinition.addContainer(
       "session-service-node",
       {
@@ -189,6 +272,13 @@ export class SessionStack extends cdk.Stack {
       readOnly: false,
     });
 
+    const linuxParameters = new ecs.LinuxParameters(
+      this,
+      "sessionLokinetContainerParameters",
+    );
+
+    linuxParameters.addCapabilities(Capability.NET_ADMIN);
+
     const lokinetContainer = sessionTaskDefinition.addContainer(
       "session-lokinet-server",
       {
@@ -214,6 +304,7 @@ export class SessionStack extends cdk.Stack {
           ECS_SERVICE_NAME: serviceName,
           ECS_CLUSTER_NAME: cluster.clusterName,
         },
+        linuxParameters: linuxParameters,
       },
     );
 
@@ -223,16 +314,17 @@ export class SessionStack extends cdk.Stack {
       readOnly: false,
     });
 
+    return sessionTaskDefinition;
+  }
+
+  private createSecurityGroup(vpc: ec2.IVpc): ec2.SecurityGroup {
     const ecsSecurityGroup = new ec2.SecurityGroup(
       this,
-      "sessionEcsSecurityGroup",
+      "sessionSecurityGroup",
       {
         vpc: vpc,
       },
     );
-
-    // @TODO Restrict this
-    ecsSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22));
 
     ecsSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(1090));
 
@@ -246,14 +338,41 @@ export class SessionStack extends cdk.Stack {
 
     ecsSecurityGroup.addEgressRule(ec2.Peer.anyIpv4(), ec2.Port.allTraffic());
 
+    return ecsSecurityGroup;
+  }
+
+  private createEc2Service(
+    serviceName: string,
+    vpc: ec2.IVpc,
+    cluster: ecs.ICluster,
+    sessionTaskDefinition: ecs.TaskDefinition,
+    ecsSecurityGroups: ec2.SecurityGroup[],
+  ): ecs.Ec2Service {
+    return new ecs.Ec2Service(this, "sessionEc2Service", {
+      cluster: cluster,
+      serviceName: serviceName,
+      taskDefinition: sessionTaskDefinition,
+      vpcSubnets: vpc.selectSubnets(),
+      desiredCount: 1,
+      securityGroups: ecsSecurityGroups,
+    });
+  }
+
+  private createFargateService(
+    serviceName: string,
+    vpc: ec2.IVpc,
+    cluster: ecs.ICluster,
+    sessionTaskDefinition: ecs.TaskDefinition,
+    ecsSecurityGroups: ec2.SecurityGroup[],
+  ): ecs.FargateService {
     return new ecs.FargateService(this, "sessionFargateService", {
       cluster: cluster,
       serviceName: serviceName,
       taskDefinition: sessionTaskDefinition,
       assignPublicIp: true,
       vpcSubnets: vpc.selectSubnets(),
-      desiredCount: 0,
-      securityGroups: [ecsSecurityGroup],
+      desiredCount: 1,
+      securityGroups: ecsSecurityGroups,
     });
   }
 
