@@ -126,7 +126,7 @@ export class SessionStack extends cdk.Stack {
             InstanceSize.MEDIUM,
           ),
           machineImage: MachineImage.lookup({
-            name: "Amazon ECS-optimized Amazon Linux 2023 AMI",
+            name: "al2023-ami-ecs-hvm-2023.0.20231204-kernel-6.1-x86_64",
           }),
           associatePublicIpAddress: true,
           role: Role.fromRoleName(
