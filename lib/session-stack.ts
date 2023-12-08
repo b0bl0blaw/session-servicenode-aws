@@ -115,7 +115,7 @@ export class SessionStack extends cdk.Stack {
           vpc: vpc,
           autoScalingGroupName: serviceName,
           instanceType: ec2.InstanceType.of(
-            InstanceClass.T3,
+            InstanceClass.T3A,
             InstanceSize.MEDIUM,
           ),
           machineImage: MachineImage.lookup({
