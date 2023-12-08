@@ -280,7 +280,7 @@ export class SessionStack extends cdk.Stack {
         image: ecs.ContainerImage.fromRegistry(
           "b0bl0blawslawbl0g/session-lokinet-aws",
         ),
-        essential: false,
+        essential: true,
         privileged: false,
         logging: ecs.LogDriver.awsLogs({
           logGroup: serviceLogGroup,
