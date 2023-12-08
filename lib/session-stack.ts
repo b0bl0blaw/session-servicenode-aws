@@ -1,12 +1,7 @@
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
-import {
-  AmazonLinuxCpuType,
-  InstanceClass,
-  InstanceSize,
-  MachineImage,
-} from "aws-cdk-lib/aws-ec2";
+import { InstanceClass, InstanceSize, MachineImage } from "aws-cdk-lib/aws-ec2";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import { Capability, Protocol } from "aws-cdk-lib/aws-ecs";
 import * as efs from "aws-cdk-lib/aws-efs";
@@ -49,9 +44,7 @@ export class SessionStack extends cdk.Stack {
         securityGroup,
       ]);
     } else {
-      this.createEc2Service(serviceName, vpc, ecsCluster, taskDefinition, [
-        securityGroup,
-      ]);
+      this.createEc2Service(serviceName, ecsCluster, taskDefinition);
     }
   }
 
@@ -164,12 +157,16 @@ export class SessionStack extends cdk.Stack {
       ? ecs.Compatibility.FARGATE
       : ecs.Compatibility.EC2;
 
+    const networkMode = asFargate
+      ? ecs.NetworkMode.AWS_VPC
+      : ecs.NetworkMode.HOST;
+
     const sessionTaskDefinition = new ecs.TaskDefinition(
       this,
       "sessionTaskDefinition",
       {
         compatibility: compatibilityMode,
-        networkMode: ecs.NetworkMode.AWS_VPC,
+        networkMode: networkMode,
         family: "session",
         cpu: "1024",
         memoryMiB: "3072",
@@ -342,18 +339,14 @@ export class SessionStack extends cdk.Stack {
 
   private createEc2Service(
     serviceName: string,
-    vpc: ec2.IVpc,
     cluster: ecs.ICluster,
     sessionTaskDefinition: ecs.TaskDefinition,
-    ecsSecurityGroups: ec2.SecurityGroup[],
   ): ecs.Ec2Service {
     return new ecs.Ec2Service(this, "sessionEc2Service", {
       cluster: cluster,
       serviceName: serviceName,
       taskDefinition: sessionTaskDefinition,
-      vpcSubnets: vpc.selectSubnets(),
       desiredCount: 1,
-      securityGroups: ecsSecurityGroups,
     });
   }
 
