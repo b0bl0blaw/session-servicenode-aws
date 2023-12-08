@@ -9,7 +9,8 @@ if [ ! -z "$AS_FARGATE" ] && [ "$AS_FARGATE" = true ]; then
   ENI=$(echo $TASK_DETAILS | jq -r '.[] | select(.name=="networkInterfaceId").value')
   PUBLIC_IP=$(aws ec2 describe-network-interfaces --network-interface-ids "${ENI}" --query 'NetworkInterfaces[0].Association.PublicIp' --output text)
 else:
-  PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+  TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+  PUBLIC_IP=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
 fi
 
 echo "Using public IP address: ${PUBLIC_IP}"
