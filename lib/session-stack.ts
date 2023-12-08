@@ -168,7 +168,7 @@ export class SessionStack extends cdk.Stack {
         compatibility: compatibilityMode,
         networkMode: networkMode,
         family: "session",
-        cpu: "1024",
+        cpu: "2048",
         memoryMiB: "3072",
         volumes: [
           {
