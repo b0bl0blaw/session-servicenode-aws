@@ -1,6 +1,16 @@
 #!/bin/bash
 set -eo pipefail
 
+MIN_SIZE=15000000000  # 15GB
+DATA_FILE_PATH="/efs/session-node/lmdb/data.mdb"
+
+if [ -e "$DATA_FILE_PATH" ] && [ "$(stat -c %s "$DATA_FILE_PATH")" -gt $MIN_SIZE ]; then
+    echo "We have a decent chunk of lmdb, falling back to oxend sync."
+else
+    pass
+    # @TODO Download our latest data.mdb from S3
+fi
+
 if [ -n "$AS_FARGATE" ] && [ "$AS_FARGATE" = true ]; then
   TASK_ARN=$(aws ecs list-tasks --cluster "$ECS_CLUSTER_NAME" --service-name "$ECS_SERVICE_NAME" --query 'taskArns[0]' --output text)
   TASK_DETAILS=$(aws ecs describe-tasks --cluster "$ECS_CLUSTER_NAME" --task "${TASK_ARN}" --query 'tasks[0].attachments[0].details')
