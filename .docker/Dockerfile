@@ -18,4 +18,4 @@ ENTRYPOINT ["/entrypoint.sh"]
 
 EXPOSE 22022 22025
 
-CMD ["oxend", "--non-interactive", "--data-dir", "/efs/session-node", "--service-node"]
+CMD ["oxend", "--bootstrap-daemon-address", "auto" ,"--non-interactive", "--data-dir", "/efs/session-node", "--service-node"]
