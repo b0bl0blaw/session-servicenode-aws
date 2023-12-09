@@ -1,13 +1,23 @@
 #!/bin/bash
 set -eo pipefail
 
+# Give a little time for oxend to start
+sleep 10
+
 mkdir -p /efs/lokinet
 touch /efs/lokinet/self.signed
 
-if [ ! -z "$AS_FARGATE" ] && [ "$AS_FARGATE" = true ]; then
+DATA_FILE_PATH="/efs/session-node/lmdb/data.mdb"
+
+while [ ! -e "$DATA_FILE_PATH" ]; do
+    echo "LMDB not present, waiting to start lokinet..."
+    sleep 10
+done
+
+if [ -n "$AS_FARGATE" ] && [ "$AS_FARGATE" = true ]; then
   TASK_ARN=$(aws ecs list-tasks --cluster "$ECS_CLUSTER_NAME" --service-name "$ECS_SERVICE_NAME" --query 'taskArns[0]' --output text)
   TASK_DETAILS=$(aws ecs describe-tasks --cluster "$ECS_CLUSTER_NAME" --task "${TASK_ARN}" --query 'tasks[0].attachments[0].details')
-  ENI=$(echo $TASK_DETAILS | jq -r '.[] | select(.name=="networkInterfaceId").value')
+  ENI=$(echo "$TASK_DETAILS" | jq -r '.[] | select(.name=="networkInterfaceId").value')
 
   export PUBLIC_IP=$(aws ec2 describe-network-interfaces --network-interface-ids "${ENI}" --query 'NetworkInterfaces[0].Association.PublicIp' --output text)
   export PRIVATE_IP=$(aws ec2 describe-network-interfaces --network-interface-ids "${ENI}" --query 'NetworkInterfaces[0].PrivateIpAddress' --output text)

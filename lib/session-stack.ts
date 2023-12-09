@@ -19,12 +19,7 @@ export class SessionStack extends cdk.Stack {
 
     // @TODO use environment variables?
     const asFargate = false;
-    const serviceNodeId = 1;
-
-    let serviceName = "ec2Node" + serviceNodeId;
-    if (asFargate) {
-      serviceName = "fargateNode" + serviceNodeId;
-    }
+    const serviceName = "sessionNode";
 
     const vpc = this.createVpc();
     const efsFilesystem = this.createEfs(vpc);
