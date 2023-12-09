@@ -151,6 +151,7 @@ export class SessionStack extends cdk.Stack {
 
   private createTaskDefinition(
     asFargate: boolean,
+    resourceId: string,
     params: BuildParams,
   ): ecs.TaskDefinition {
     const compatibilityMode = asFargate
@@ -169,7 +170,7 @@ export class SessionStack extends cdk.Stack {
       memory = "3072";
     }
 
-    return new ecs.TaskDefinition(this, "sessionTaskDefinition", {
+    return new ecs.TaskDefinition(this, resourceId, {
       compatibility: compatibilityMode,
       networkMode: networkMode,
       family: "session",
@@ -214,7 +215,11 @@ export class SessionStack extends cdk.Stack {
 
   private createEc2ServiceNodeService(params: BuildParams): ecs.Ec2Service {
     const serviceName = "serviceNode";
-    const taskDefinition = this.createTaskDefinition(false, params);
+    const taskDefinition = this.createTaskDefinition(
+      false,
+      "snTaskDefinition",
+      params,
+    );
     const serviceNodeContainer = taskDefinition.addContainer(
       "session-service-node",
       {
@@ -268,7 +273,11 @@ export class SessionStack extends cdk.Stack {
 
   private createEc2StorageServerService(params: BuildParams): ecs.Ec2Service {
     const serviceName = "storageServer";
-    const taskDefinition = this.createTaskDefinition(false, params);
+    const taskDefinition = this.createTaskDefinition(
+      false,
+      "ssTaskDefinition",
+      params,
+    );
     const storageServerContainer = taskDefinition.addContainer(
       "session-storage-server",
       {
@@ -322,7 +331,11 @@ export class SessionStack extends cdk.Stack {
 
   private createEc2LokinetService(params: BuildParams): ecs.Ec2Service {
     const serviceName = "lokinet";
-    const taskDefinition = this.createTaskDefinition(false, params);
+    const taskDefinition = this.createTaskDefinition(
+      false,
+      "lokinetTaskDefinition",
+      params,
+    );
     const linuxParameters = new ecs.LinuxParameters(
       this,
       "sessionLokinetContainerParameters",
