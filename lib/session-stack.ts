@@ -130,6 +130,7 @@ export class SessionStack extends cdk.Stack {
             "sessionInstanceProfile",
             "AmazonSSMRoleForInstancesQuickSetup",
           ),
+          newInstancesProtectedFromScaleIn: false,
         },
       );
 
