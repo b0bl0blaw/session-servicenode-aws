@@ -1,9 +1,6 @@
 #!/bin/bash
 set -eo pipefail
 
-# Give a little time for oxend to start
-sleep 10
-
 mkdir -p /efs/lokinet
 touch /efs/lokinet/self.signed
 

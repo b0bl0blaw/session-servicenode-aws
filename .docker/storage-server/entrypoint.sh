@@ -1,9 +1,6 @@
 #!/bin/bash
 set -eo pipefail
 
-# Give a little time for oxend to start
-sleep 10
-
 DATA_FILE_PATH="/efs/session-node/lmdb/data.mdb"
 
 while [ ! -e "$DATA_FILE_PATH" ]; do

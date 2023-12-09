@@ -10,6 +10,16 @@ import { AnyPrincipal, Effect, Role } from "aws-cdk-lib/aws-iam";
 import * as autoscaling from "aws-cdk-lib/aws-autoscaling";
 import * as logs from "aws-cdk-lib/aws-logs";
 
+interface BuildParams {
+  vpc: ec2.IVpc;
+  ecsCluster: ecs.ICluster;
+  efsFilesystem: efs.IFileSystem;
+  taskRole: iam.IRole;
+  executionRole: iam.IRole;
+  logGroup: logs.ILogGroup;
+  volumeName: string;
+}
+
 export class SessionStack extends cdk.Stack {
   private readonly SESSION_BACKUP_DB_ARN =
     "arn:aws:s3:::session-lmdb-backups/*";
@@ -17,32 +27,33 @@ export class SessionStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    // @TODO use environment variables?
     const asFargate = false;
-    const serviceName = "sessionNode";
+    const volumeName = "efsVolume";
 
     const vpc = this.createVpc();
     const efsFilesystem = this.createEfs(vpc);
-    const ecsCluster = this.createCluster(serviceName, vpc, asFargate);
+    const ecsCluster = this.createCluster(vpc, asFargate);
     const taskRole = this.createEcsTaskRole(efsFilesystem);
     const executionRole = this.createEcsExecutionRole(efsFilesystem);
-    const taskDefinition = this.createTaskDefinition(
-      serviceName,
-      asFargate,
+    const securityGroup = this.createSecurityGroup(vpc);
+    const logGroup = new logs.LogGroup(this, "sessionServiceLogGroup");
+
+    const buildParams: BuildParams = {
+      vpc,
       ecsCluster,
       efsFilesystem,
       taskRole,
       executionRole,
-    );
-
-    const securityGroup = this.createSecurityGroup(vpc);
+      logGroup,
+      volumeName,
+    };
 
     if (asFargate) {
-      this.createFargateService(serviceName, vpc, ecsCluster, taskDefinition, [
-        securityGroup,
-      ]);
+      this.createFargateService(buildParams, [securityGroup]);
     } else {
-      this.createEc2Service(serviceName, ecsCluster, taskDefinition);
+      this.createEc2ServiceNodeService(buildParams);
+      this.createEc2StorageServerService(buildParams);
+      this.createEc2LokinetService(buildParams);
     }
   }
 
@@ -93,11 +104,7 @@ export class SessionStack extends cdk.Stack {
     return fileSystem;
   }
 
-  private createCluster(
-    serviceName: string,
-    vpc: ec2.IVpc,
-    asFargate: boolean,
-  ): ecs.Cluster {
+  private createCluster(vpc: ec2.IVpc, asFargate: boolean): ecs.Cluster {
     const clusterName = "sessionCluster";
 
     const cluster = new ecs.Cluster(this, "sessionCluster", {
@@ -111,7 +118,6 @@ export class SessionStack extends cdk.Stack {
         "sessionAutoScalingGroup",
         {
           vpc: vpc,
-          autoScalingGroupName: serviceName,
           instanceType: ec2.InstanceType.of(
             InstanceClass.T3A,
             InstanceSize.MEDIUM,
@@ -144,14 +150,9 @@ export class SessionStack extends cdk.Stack {
   }
 
   private createTaskDefinition(
-    serviceName: string,
     asFargate: boolean,
-    cluster: ecs.ICluster,
-    efsFilesystem: efs.IFileSystem,
-    taskRole: iam.IRole,
-    executionRole: iam.IRole,
+    params: BuildParams,
   ): ecs.TaskDefinition {
-    const volumeName = "efsVolume";
     const compatibilityMode = asFargate
       ? ecs.Compatibility.FARGATE
       : ecs.Compatibility.EC2;
@@ -160,156 +161,31 @@ export class SessionStack extends cdk.Stack {
       ? ecs.NetworkMode.AWS_VPC
       : ecs.NetworkMode.HOST;
 
-    const sessionTaskDefinition = new ecs.TaskDefinition(
-      this,
-      "sessionTaskDefinition",
-      {
-        compatibility: compatibilityMode,
-        networkMode: networkMode,
-        family: "session",
-        cpu: "2048",
-        memoryMiB: "3072",
-        volumes: [
-          {
-            name: volumeName,
-            efsVolumeConfiguration: {
-              fileSystemId: efsFilesystem.fileSystemId,
-            },
-          },
-        ],
-        taskRole: taskRole,
-        executionRole: executionRole,
-      },
-    );
+    let cpu = undefined;
+    let memory = undefined;
 
-    const serviceLogGroup = new logs.LogGroup(this, "sessionServiceLogGroup");
-    const serviceNodeContainer = sessionTaskDefinition.addContainer(
-      "session-service-node",
-      {
-        containerName: "sn-session",
-        image: ecs.ContainerImage.fromRegistry(
-          "b0bl0blawslawbl0g/session-sn-aws",
-        ),
-        essential: true,
-        privileged: false,
-        logging: ecs.LogDriver.awsLogs({
-          logGroup: serviceLogGroup,
-          streamPrefix: "ecs",
-        }),
-        portMappings: [
-          {
-            containerPort: 22022,
-            hostPort: 22022,
-            protocol: Protocol.TCP,
+    if (asFargate) {
+      cpu = "2048";
+      memory = "3072";
+    }
+
+    return new ecs.TaskDefinition(this, "sessionTaskDefinition", {
+      compatibility: compatibilityMode,
+      networkMode: networkMode,
+      family: "session",
+      cpu: cpu,
+      memoryMiB: memory,
+      volumes: [
+        {
+          name: params.volumeName,
+          efsVolumeConfiguration: {
+            fileSystemId: params.efsFilesystem.fileSystemId,
           },
-          {
-            containerPort: 22025,
-            hostPort: 22025,
-            protocol: Protocol.TCP,
-          },
-        ],
-        environment: {
-          AS_FARGATE: String(asFargate),
-          EFS_FILE_SYSTEM_ID: efsFilesystem.fileSystemId,
-          ECS_SERVICE_NAME: serviceName,
-          ECS_CLUSTER_NAME: cluster.clusterName,
-          AWS_REGION: cluster.stack.region,
         },
-      },
-    );
-
-    serviceNodeContainer.addMountPoints({
-      sourceVolume: volumeName,
-      containerPath: "/efs",
-      readOnly: false,
+      ],
+      taskRole: params.taskRole,
+      executionRole: params.executionRole,
     });
-
-    const storageServerContainer = sessionTaskDefinition.addContainer(
-      "session-storage-server",
-      {
-        containerName: "ss-session",
-        image: ecs.ContainerImage.fromRegistry(
-          "b0bl0blawslawbl0g/session-ss-aws",
-        ),
-        essential: true,
-        privileged: false,
-        logging: ecs.LogDriver.awsLogs({
-          logGroup: serviceLogGroup,
-          streamPrefix: "ecs",
-        }),
-        portMappings: [
-          {
-            containerPort: 22020,
-            hostPort: 22020,
-            protocol: Protocol.TCP,
-          },
-          {
-            containerPort: 22021,
-            hostPort: 22021,
-            protocol: Protocol.TCP,
-          },
-        ],
-        environment: {
-          AS_FARGATE: String(asFargate),
-          EFS_FILE_SYSTEM_ID: efsFilesystem.fileSystemId,
-          ECS_SERVICE_NAME: serviceName,
-          ECS_CLUSTER_NAME: cluster.clusterName,
-          AWS_REGION: cluster.stack.region,
-        },
-      },
-    );
-
-    storageServerContainer.addMountPoints({
-      sourceVolume: volumeName,
-      containerPath: "/efs",
-      readOnly: false,
-    });
-
-    const linuxParameters = new ecs.LinuxParameters(
-      this,
-      "sessionLokinetContainerParameters",
-    );
-
-    linuxParameters.addCapabilities(Capability.NET_ADMIN);
-
-    const lokinetContainer = sessionTaskDefinition.addContainer(
-      "session-lokinet-server",
-      {
-        containerName: "lokinet-session",
-        image: ecs.ContainerImage.fromRegistry(
-          "b0bl0blawslawbl0g/session-lokinet-aws",
-        ),
-        essential: true,
-        privileged: false,
-        logging: ecs.LogDriver.awsLogs({
-          logGroup: serviceLogGroup,
-          streamPrefix: "ecs",
-        }),
-        portMappings: [
-          {
-            containerPort: 1090,
-            hostPort: 1090,
-            protocol: Protocol.UDP,
-          },
-        ],
-        environment: {
-          AS_FARGATE: String(asFargate),
-          EFS_FILE_SYSTEM_ID: efsFilesystem.fileSystemId,
-          ECS_SERVICE_NAME: serviceName,
-          ECS_CLUSTER_NAME: cluster.clusterName,
-          AWS_REGION: cluster.stack.region,
-        },
-        linuxParameters: linuxParameters,
-      },
-    );
-
-    lokinetContainer.addMountPoints({
-      sourceVolume: volumeName,
-      containerPath: "/efs",
-      readOnly: false,
-    });
-
-    return sessionTaskDefinition;
   }
 
   private createSecurityGroup(vpc: ec2.IVpc): ec2.SecurityGroup {
@@ -336,15 +212,165 @@ export class SessionStack extends cdk.Stack {
     return ecsSecurityGroup;
   }
 
-  private createEc2Service(
-    serviceName: string,
-    cluster: ecs.ICluster,
-    sessionTaskDefinition: ecs.TaskDefinition,
-  ): ecs.Ec2Service {
-    return new ecs.Ec2Service(this, "sessionEc2Service", {
-      cluster: cluster,
+  private createEc2ServiceNodeService(params: BuildParams): ecs.Ec2Service {
+    const serviceName = "serviceNode";
+    const taskDefinition = this.createTaskDefinition(false, params);
+    const serviceNodeContainer = taskDefinition.addContainer(
+      "session-service-node",
+      {
+        containerName: "sn-session",
+        image: ecs.ContainerImage.fromRegistry(
+          "b0bl0blawslawbl0g/session-sn-aws",
+        ),
+        essential: true,
+        privileged: false,
+        logging: ecs.LogDriver.awsLogs({
+          logGroup: params.logGroup,
+          streamPrefix: "ecs",
+        }),
+        portMappings: [
+          {
+            containerPort: 22022,
+            hostPort: 22022,
+            protocol: Protocol.TCP,
+          },
+          {
+            containerPort: 22025,
+            hostPort: 22025,
+            protocol: Protocol.TCP,
+          },
+        ],
+        environment: {
+          AS_FARGATE: "false",
+          EFS_FILE_SYSTEM_ID: params.efsFilesystem.fileSystemId,
+          ECS_SERVICE_NAME: serviceName,
+          ECS_CLUSTER_NAME: params.ecsCluster.clusterName,
+          AWS_REGION: params.ecsCluster.stack.region,
+        },
+      },
+    );
+
+    serviceNodeContainer.addMountPoints({
+      sourceVolume: params.volumeName,
+      containerPath: "/efs",
+      readOnly: false,
+    });
+
+    return new ecs.Ec2Service(this, "sessionEc2ServiceNodeService", {
+      cluster: params.ecsCluster,
       serviceName: serviceName,
-      taskDefinition: sessionTaskDefinition,
+      taskDefinition: taskDefinition,
+      desiredCount: 1,
+      minHealthyPercent: 0,
+      maxHealthyPercent: 100,
+    });
+  }
+
+  private createEc2StorageServerService(params: BuildParams): ecs.Ec2Service {
+    const serviceName = "storageServer";
+    const taskDefinition = this.createTaskDefinition(false, params);
+    const storageServerContainer = taskDefinition.addContainer(
+      "session-storage-server",
+      {
+        containerName: "ss-session",
+        image: ecs.ContainerImage.fromRegistry(
+          "b0bl0blawslawbl0g/session-ss-aws",
+        ),
+        essential: true,
+        privileged: false,
+        logging: ecs.LogDriver.awsLogs({
+          logGroup: params.logGroup,
+          streamPrefix: "ecs",
+        }),
+        portMappings: [
+          {
+            containerPort: 22020,
+            hostPort: 22020,
+            protocol: Protocol.TCP,
+          },
+          {
+            containerPort: 22021,
+            hostPort: 22021,
+            protocol: Protocol.TCP,
+          },
+        ],
+        environment: {
+          AS_FARGATE: "false",
+          EFS_FILE_SYSTEM_ID: params.efsFilesystem.fileSystemId,
+          ECS_SERVICE_NAME: serviceName,
+          ECS_CLUSTER_NAME: params.ecsCluster.clusterName,
+          AWS_REGION: params.ecsCluster.stack.region,
+        },
+      },
+    );
+
+    storageServerContainer.addMountPoints({
+      sourceVolume: params.volumeName,
+      containerPath: "/efs",
+      readOnly: false,
+    });
+
+    return new ecs.Ec2Service(this, "sessionEc2StorageServerService", {
+      cluster: params.ecsCluster,
+      serviceName: "storageServer",
+      taskDefinition: taskDefinition,
+      desiredCount: 1,
+      minHealthyPercent: 0,
+      maxHealthyPercent: 100,
+    });
+  }
+
+  private createEc2LokinetService(params: BuildParams): ecs.Ec2Service {
+    const serviceName = "lokinet";
+    const taskDefinition = this.createTaskDefinition(false, params);
+    const linuxParameters = new ecs.LinuxParameters(
+      this,
+      "sessionLokinetContainerParameters",
+    );
+
+    linuxParameters.addCapabilities(Capability.NET_ADMIN);
+
+    const lokinetContainer = taskDefinition.addContainer(
+      "session-lokinet-server",
+      {
+        containerName: "lokinet-session",
+        image: ecs.ContainerImage.fromRegistry(
+          "b0bl0blawslawbl0g/session-lokinet-aws",
+        ),
+        essential: true,
+        privileged: false,
+        logging: ecs.LogDriver.awsLogs({
+          logGroup: params.logGroup,
+          streamPrefix: "ecs",
+        }),
+        portMappings: [
+          {
+            containerPort: 1090,
+            hostPort: 1090,
+            protocol: Protocol.UDP,
+          },
+        ],
+        environment: {
+          AS_FARGATE: "false",
+          EFS_FILE_SYSTEM_ID: params.efsFilesystem.fileSystemId,
+          ECS_SERVICE_NAME: serviceName,
+          ECS_CLUSTER_NAME: params.ecsCluster.clusterName,
+          AWS_REGION: params.ecsCluster.stack.region,
+        },
+        linuxParameters: linuxParameters,
+      },
+    );
+
+    lokinetContainer.addMountPoints({
+      sourceVolume: params.volumeName,
+      containerPath: "/efs",
+      readOnly: false,
+    });
+
+    return new ecs.Ec2Service(this, "sessionEc2LokinetService", {
+      cluster: params.ecsCluster,
+      serviceName: "lokinet",
+      taskDefinition: taskDefinition,
       desiredCount: 1,
       minHealthyPercent: 0,
       maxHealthyPercent: 100,
@@ -352,18 +378,18 @@ export class SessionStack extends cdk.Stack {
   }
 
   private createFargateService(
-    serviceName: string,
-    vpc: ec2.IVpc,
-    cluster: ecs.ICluster,
-    sessionTaskDefinition: ecs.TaskDefinition,
+    params: BuildParams,
     ecsSecurityGroups: ec2.SecurityGroup[],
   ): ecs.FargateService {
+    const serviceName = "fargateNode";
+    const taskDefinition = this.createTaskDefinition(true, params);
+
     return new ecs.FargateService(this, "sessionFargateService", {
-      cluster: cluster,
+      cluster: params.ecsCluster,
       serviceName: serviceName,
-      taskDefinition: sessionTaskDefinition,
+      taskDefinition: taskDefinition,
       assignPublicIp: true,
-      vpcSubnets: vpc.selectSubnets(),
+      vpcSubnets: params.vpc.selectSubnets(),
       desiredCount: 1,
       securityGroups: ecsSecurityGroups,
     });
