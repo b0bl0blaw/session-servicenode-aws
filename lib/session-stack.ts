@@ -395,7 +395,11 @@ export class SessionStack extends cdk.Stack {
     ecsSecurityGroups: ec2.SecurityGroup[],
   ): ecs.FargateService {
     const serviceName = "fargateNode";
-    const taskDefinition = this.createTaskDefinition(true, params);
+    const taskDefinition = this.createTaskDefinition(
+      true,
+      "fargateTaskDefinition",
+      params,
+    );
 
     return new ecs.FargateService(this, "sessionFargateService", {
       cluster: params.ecsCluster,
