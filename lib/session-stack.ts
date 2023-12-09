@@ -347,6 +347,8 @@ export class SessionStack extends cdk.Stack {
       serviceName: serviceName,
       taskDefinition: sessionTaskDefinition,
       desiredCount: 1,
+      minHealthyPercent: 0,
+      maxHealthyPercent: 100,
     });
   }
 
