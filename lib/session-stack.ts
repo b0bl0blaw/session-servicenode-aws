@@ -11,6 +11,9 @@ import * as autoscaling from "aws-cdk-lib/aws-autoscaling";
 import * as logs from "aws-cdk-lib/aws-logs";
 
 export class SessionStack extends cdk.Stack {
+  private readonly SESSION_BACKUP_DB_ARN =
+    "arn:aws:s3:::session-lmdb-backups/*";
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -416,8 +419,14 @@ export class SessionStack extends cdk.Stack {
       resources: [efsFilesystem.fileSystemArn],
     });
 
+    const s3PolicyDocument = new iam.PolicyStatement({
+      effect: Effect.ALLOW,
+      actions: ["s3:GetObject"],
+      resources: [this.SESSION_BACKUP_DB_ARN],
+    });
+
     const policyDocument = new iam.PolicyDocument({
-      statements: [ecsPolicyDocument, ecrPolicyStatement],
+      statements: [ecsPolicyDocument, ecrPolicyStatement, s3PolicyDocument],
     });
 
     return new iam.Role(this, "sessionTaskRole", {

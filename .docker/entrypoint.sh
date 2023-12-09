@@ -7,8 +7,7 @@ DATA_FILE_PATH="/efs/session-node/lmdb/data.mdb"
 if [ -e "$DATA_FILE_PATH" ] && [ "$(stat -c %s "$DATA_FILE_PATH")" -gt $MIN_SIZE ]; then
     echo "We have a decent chunk of lmdb, falling back to oxend sync."
 else
-    pass
-    # @TODO Download our latest data.mdb from S3
+    aws s3 cp s3://session-lmdb-backups/data.mdb /efs/session-node/lmdb/
 fi
 
 if [ -n "$AS_FARGATE" ] && [ "$AS_FARGATE" = true ]; then
