@@ -229,6 +229,7 @@ export class SessionStack extends cdk.Stack {
         ),
         essential: true,
         privileged: false,
+        memoryReservationMiB: 1024,
         logging: ecs.LogDriver.awsLogs({
           logGroup: params.logGroup,
           streamPrefix: "ecs",
@@ -287,6 +288,7 @@ export class SessionStack extends cdk.Stack {
         ),
         essential: true,
         privileged: false,
+        memoryReservationMiB: 1024,
         logging: ecs.LogDriver.awsLogs({
           logGroup: params.logGroup,
           streamPrefix: "ecs",
@@ -352,6 +354,7 @@ export class SessionStack extends cdk.Stack {
         ),
         essential: true,
         privileged: false,
+        memoryReservationMiB: 1024,
         logging: ecs.LogDriver.awsLogs({
           logGroup: params.logGroup,
           streamPrefix: "ecs",
