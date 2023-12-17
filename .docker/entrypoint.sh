@@ -7,12 +7,6 @@ DATA_FILE_PATH="/efs/session-node/lmdb/data.mdb"
 if [ -e "$DATA_FILE_PATH" ] && [ "$(stat -c %s "$DATA_FILE_PATH")" -gt $MIN_SIZE ]; then
     echo "We have a decent chunk of lmdb, falling back to oxend sync."
 else
-    aws s3 cp s3://session-lmdb-backups/ons.db /efs/session-node/
-    aws s3 cp s3://session-lmdb-backups/ons.db-shm /efs/session-node/
-    aws s3 cp s3://session-lmdb-backups/ons.db-wal /efs/session-node/
-    aws s3 cp s3://session-lmdb-backups/sqlite.db /efs/session-node/
-    aws s3 cp s3://session-lmdb-backups/sqlite.db-shm /efs/session-node/
-    aws s3 cp s3://session-lmdb-backups/sqlite.db-wal /efs/session-node/
     aws s3 cp s3://session-lmdb-backups/data.mdb /efs/session-node/lmdb/
 fi
 
