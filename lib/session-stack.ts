@@ -32,10 +32,10 @@ export class SessionStack extends cdk.Stack {
 
     const vpc = this.createVpc();
     const efsFilesystem = this.createEfs(vpc);
-    const ecsCluster = this.createCluster(vpc, asFargate);
+    const securityGroup = this.createSecurityGroup(vpc);
+    const ecsCluster = this.createCluster(vpc, securityGroup, asFargate);
     const taskRole = this.createEcsTaskRole(efsFilesystem);
     const executionRole = this.createEcsExecutionRole(efsFilesystem);
-    const securityGroup = this.createSecurityGroup(vpc);
     const logGroup = new logs.LogGroup(this, "sessionServiceLogGroup");
 
     const buildParams: BuildParams = {
@@ -104,7 +104,11 @@ export class SessionStack extends cdk.Stack {
     return fileSystem;
   }
 
-  private createCluster(vpc: ec2.IVpc, asFargate: boolean): ecs.Cluster {
+  private createCluster(
+    vpc: ec2.IVpc,
+    securityGroup: ec2.ISecurityGroup,
+    asFargate: boolean,
+  ): ecs.Cluster {
     const clusterName = "sessionCluster";
 
     const cluster = new ecs.Cluster(this, "sessionCluster", {
@@ -122,6 +126,7 @@ export class SessionStack extends cdk.Stack {
             InstanceClass.T3A,
             InstanceSize.MEDIUM,
           ),
+          securityGroup: securityGroup,
           machineImage: MachineImage.lookup({
             name: "al2023-ami-ecs-hvm-2023.0.20231204-kernel-6.1-x86_64",
           }),
