@@ -47,7 +47,7 @@ export class SessionStack extends cdk.Stack {
       let logGroupId = "sessionServiceLogGroup";
 
       if (i > 1) {
-        logGroupId += `-${instanceCount}`;
+        logGroupId += `-${i}`;
       }
 
       const logGroup = new logs.LogGroup(this, logGroupId);
