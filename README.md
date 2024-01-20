@@ -6,18 +6,23 @@ This will use your default configured AWS region to deploy services.
 
 ## Setup
 
+[Read](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_auth) the brief CDK authentication
+section to familiarize yourself with profiles and regions
+
+### Requirements
+
+* [Node](https://nodejs.org) / [NPM](https://www.npmjs.com/) (Easily maintained
+  with [NVM](https://github.com/nvm-sh/nvm)) - required to run application
+* [Docker](https://www.docker.com/products/docker-desktop/) - required to build the contents of .docker into AWS ECR (
+  to remove reliance on shady public images and increase transparency)
+
 ### Local environment
 
-* Install Node 20 and NPM ([NVM](https://github.com/nvm-sh/nvm) makes this easy)
 * `npm i` - install dependencies
-* [Read](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_auth) the brief CDK
-  authentication documentation to familiarize yourself
-* [Docker](https://www.docker.com/products/docker-desktop/) is required to build the contents of .docker into AWS ECR (
-  to remove reliance on shady public images)
 
 ### Parameters
 
-`INSTANCE_COUNT` - used to define the amount of service nodes you would like to create in that region.
+`INSTANCE_COUNT` - used to define the amount of service nodes you would like to create in that region
 `SERVICE_NODE_CONTAINER_HASH` - container hash of the `sn-session` container
 
 ### Initialize the CDK environment (one-time)
