@@ -264,6 +264,7 @@ export class SessionStack extends cdk.Stack {
 
     const serviceName = "serviceNode";
 
+    // @TODO Update fromRegistry to fromAsset and use .docker for build directory
     const serviceNodeContainer = taskDefinition.addContainer(containerId, {
       containerName: "sn-session",
       image: ecs.ContainerImage.fromRegistry(
@@ -334,6 +335,7 @@ export class SessionStack extends cdk.Stack {
 
     const serviceName = "storageServer";
 
+    // @TODO Update fromRegistry to fromAsset and use .docker/storage-server for build directory
     const storageServerContainer = taskDefinition.addContainer(containerId, {
       containerName: "ss-session",
       image: ecs.ContainerImage.fromRegistry(
@@ -408,6 +410,7 @@ export class SessionStack extends cdk.Stack {
 
     const serviceName = "lokinet";
 
+    // @TODO Update fromRegistry to fromAsset and use .docker/lokinet-router for build directory
     const lokinetContainer = taskDefinition.addContainer(containerId, {
       containerName: "lokinet-session",
       image: ecs.ContainerImage.fromRegistry(
