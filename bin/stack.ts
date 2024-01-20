@@ -5,8 +5,6 @@ import { SessionStack } from "../lib/session-stack";
 
 const app = new cdk.App();
 
-app.
-
 // Default region
 const defaultRegionInstanceCount = 1;
 new SessionStack(app, "SessionStack", defaultRegionInstanceCount, {

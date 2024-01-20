@@ -6,7 +6,17 @@ This will use your default configured AWS region to deploy services.
 
 ## Setup steps
 
-INSTANCE_COUNT is used to define the `amount` of service nodes you would like to create in that region.
+### Setup environment
+
+* Install Node 20 and NPM ([NVM](https://github.com/nvm-sh/nvm) makes this easy)
+* `npm i` - install dependencies
+* [Read](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_auth) the brief CDK
+  authentication documentation to familiarize yourself
+
+## Parameters
+
+INSTANCE_COUNT - used to define the `amount` of service nodes you would like to create in that region.
+SERVICE_NODE_CONTAINER_HASH - container hash of the `sn-session` container
 
 ### Initialize the CDK environment (one-time)
 
@@ -39,8 +49,8 @@ Session Manager in the EC2 console and run the following commands.
 
 * `sudo -s` - elevate
 * `docker ps` - list containers
-* `docker exec -it SERVICENODE_CONTAINER_HASH exec bash` - bash into the service node container where
-  SERVICENODE_CONTAINER_HASH is the container hash for the `sn-session` container
+* `docker exec -it SERVICE_NODE_CONTAINER_HASH exec bash` - bash into the service node container where
+  SERVICE_NODE_CONTAINER_HASH is the container hash for the `sn-session` container
 * `oxend prepare_registration` - run the typical oxend registration command
 
 ### Maintaining a service node
