@@ -38,20 +38,15 @@ export class SessionStack extends cdk.Stack {
     const vpc = this.createVpc();
     const securityGroup = this.createSecurityGroup(vpc);
 
-    for (let i = 0; i < instanceCount; i++) {
-      const ecsCluster = this.createCluster(
-        vpc,
-        securityGroup,
-        false,
-        instanceCount,
-      );
+    for (let i = 1; i <= instanceCount; i++) {
+      const ecsCluster = this.createCluster(vpc, securityGroup, false, i);
       const efsFilesystem = this.createEfs(vpc, i);
       const taskRole = this.createEcsTaskRole(efsFilesystem, i);
       const executionRole = this.createEcsExecutionRole(efsFilesystem, i);
 
       let logGroupId = "sessionServiceLogGroup";
 
-      if (instanceCount > 1) {
+      if (i > 1) {
         logGroupId += `-${instanceCount}`;
       }
 
@@ -65,7 +60,7 @@ export class SessionStack extends cdk.Stack {
         executionRole,
         logGroup,
         volumeName,
-        instanceCount,
+        ["instanceCount"]: i,
       };
 
       this.createEc2ServiceNodeService(ecsServiceParams);
