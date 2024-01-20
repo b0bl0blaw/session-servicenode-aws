@@ -162,6 +162,9 @@ export class SessionStack extends cdk.Stack {
             this,
             instanceProfileId,
             "AmazonSSMRoleForInstancesQuickSetup",
+            {
+              defaultPolicyName: `PolicySessionStack-${instanceProfileId}`,
+            },
           ),
           newInstancesProtectedFromScaleIn: false,
         },
