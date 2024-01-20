@@ -4,16 +4,16 @@ CDK commands may be run with an optional AWS profile: `npx cdk --profile PROFILE
 
 This will use your default configured AWS region to deploy services.
 
-## Setup steps
+## Setup
 
-### Setup environment
+### Local environment
 
 * Install Node 20 and NPM ([NVM](https://github.com/nvm-sh/nvm) makes this easy)
 * `npm i` - install dependencies
 * [Read](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_auth) the brief CDK
   authentication documentation to familiarize yourself
 
-## Parameters
+### Parameters
 
 INSTANCE_COUNT - used to define the `amount` of service nodes you would like to create in that region.
 SERVICE_NODE_CONTAINER_HASH - container hash of the `sn-session` container
