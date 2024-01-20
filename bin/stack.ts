@@ -5,27 +5,24 @@ import { SessionStack } from "../lib/session-stack";
 
 const app = new cdk.App();
 
-// Default region
-const defaultRegionInstanceCount = 1;
-new SessionStack(app, "SessionStack", defaultRegionInstanceCount, {
+let instanceCount;
+try {
+  instanceCount = Number(app.node.getContext("INSTANCE_COUNT"));
+} catch (Error) {
+  instanceCount = 1;
+}
+
+new SessionStack(app, "SessionStack", instanceCount, {
   env: {
     account: process.env.CDK_DEFAULT_ACCOUNT,
     region: process.env.CDK_DEFAULT_REGION,
   },
 });
 
-// Israel region
-const israelRegionInstanceCount = 1;
-new SessionStack(
-  app,
-  "SessionStack-il-central-1-1",
-  israelRegionInstanceCount,
-  {
-    env: {
-      account: process.env.CDK_DEFAULT_ACCOUNT,
-      region: "il-central-1",
-    },
+// Israel region (testing)
+new SessionStack(app, "SessionStack-il-central-1-1", instanceCount, {
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: "il-central-1",
   },
-);
-
-// More regions...
+});
