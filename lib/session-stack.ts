@@ -51,7 +51,7 @@ export class SessionStack extends cdk.Stack {
 
       let logGroupId = "sessionServiceLogGroup";
 
-      if (instanceCount > 0) {
+      if (instanceCount > 1) {
         logGroupId += `-${instanceCount}`;
       }
 
@@ -93,7 +93,7 @@ export class SessionStack extends cdk.Stack {
     let securityGroupId = "sessionEfsSecurityGroup";
     let efsId = "sessionEfs";
 
-    if (instanceCount > 0) {
+    if (instanceCount > 1) {
       securityGroupId += `-${instanceCount}`;
       efsId += `-${instanceCount}`;
     }
@@ -136,7 +136,7 @@ export class SessionStack extends cdk.Stack {
     let instanceProfileId = "sessionInstanceProfile";
     let capacityProviderId = "sessionCapacityProvider";
 
-    if (instanceCount > 0) {
+    if (instanceCount > 1) {
       clusterName += `-${instanceCount}`;
       autoScalingGroupId += `-${instanceCount}`;
       instanceProfileId += `-${instanceCount}`;
@@ -255,7 +255,7 @@ export class SessionStack extends cdk.Stack {
     let containerId = "session-service-node";
     let ec2ServiceId = "sessionEc2ServiceNodeService";
 
-    if (params.instanceCount > 0) {
+    if (params.instanceCount > 1) {
       taskDefinitionId += `-${params.instanceCount}`;
       containerId += `-${params.instanceCount}`;
       ec2ServiceId += `-${params.instanceCount}`;
@@ -325,7 +325,7 @@ export class SessionStack extends cdk.Stack {
     let containerId = "session-storage-server";
     let ec2ServiceId = "sessionEc2StorageServerService";
 
-    if (params.instanceCount > 0) {
+    if (params.instanceCount > 1) {
       taskDefinitionId += `-${params.instanceCount}`;
       containerId += `-${params.instanceCount}`;
       ec2ServiceId += `-${params.instanceCount}`;
@@ -394,7 +394,7 @@ export class SessionStack extends cdk.Stack {
     let ec2ServiceId = "sessionEc2LokinetService";
     let ecsLinuxParametersId = "sessionLokinetContainerParameters";
 
-    if (params.instanceCount > 0) {
+    if (params.instanceCount > 1) {
       taskDefinitionId += `-${params.instanceCount}`;
       containerId += `-${params.instanceCount}`;
       ec2ServiceId += `-${params.instanceCount}`;
@@ -489,7 +489,7 @@ export class SessionStack extends cdk.Stack {
   ): iam.Role {
     let roleId = "sessionExecutionRole";
 
-    if (instanceCount > 0) {
+    if (instanceCount > 1) {
       roleId += `-${instanceCount}`;
     }
 
@@ -524,7 +524,7 @@ export class SessionStack extends cdk.Stack {
   ): iam.Role {
     let roleId = "sessionTaskRole";
 
-    if (instanceCount > 0) {
+    if (instanceCount > 1) {
       roleId += `-${instanceCount}`;
     }
 
