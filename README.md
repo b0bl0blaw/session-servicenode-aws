@@ -12,6 +12,8 @@ This will use your default configured AWS region to deploy services.
 * `npm i` - install dependencies
 * [Read](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_auth) the brief CDK
   authentication documentation to familiarize yourself
+* [Docker](https://www.docker.com/products/docker-desktop/) is required to build the contents of .docker into AWS ECR (
+  to remove reliance on shady public images)
 
 ### Parameters
 
