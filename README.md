@@ -15,8 +15,8 @@ This will use your default configured AWS region to deploy services.
 
 ### Parameters
 
-INSTANCE_COUNT - used to define the `amount` of service nodes you would like to create in that region.
-SERVICE_NODE_CONTAINER_HASH - container hash of the `sn-session` container
+`INSTANCE_COUNT` - used to define the amount of service nodes you would like to create in that region.
+`SERVICE_NODE_CONTAINER_HASH` - container hash of the `sn-session` container
 
 ### Initialize the CDK environment (one-time)
 
