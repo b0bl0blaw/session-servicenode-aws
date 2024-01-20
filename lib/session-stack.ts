@@ -39,7 +39,12 @@ export class SessionStack extends cdk.Stack {
     const securityGroup = this.createSecurityGroup(vpc);
 
     for (let i = 0; i < instanceCount; i++) {
-      const ecsCluster = this.createCluster(vpc, securityGroup, false);
+      const ecsCluster = this.createCluster(
+        vpc,
+        securityGroup,
+        false,
+        instanceCount,
+      );
       const efsFilesystem = this.createEfs(vpc, i);
       const taskRole = this.createEcsTaskRole(efsFilesystem, i);
       const executionRole = this.createEcsExecutionRole(efsFilesystem, i);
