@@ -239,6 +239,8 @@ export class SessionStack extends cdk.Stack {
 
     ecsSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22021));
 
+    ecsSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(22021));
+
     ecsSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22022));
 
     ecsSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22025));
@@ -361,6 +363,11 @@ export class SessionStack extends cdk.Stack {
           containerPort: 22021,
           hostPort: 22021,
           protocol: Protocol.TCP,
+        },
+        {
+          containerPort: 22021,
+          hostPort: 22021,
+          protocol: Protocol.UDP,
         },
       ],
       environment: {
