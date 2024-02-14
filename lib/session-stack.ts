@@ -273,7 +273,7 @@ export class SessionStack extends cdk.Stack {
     const serviceNodeContainer = taskDefinition.addContainer(containerId, {
       containerName: "sn-session",
       image: ecs.ContainerImage.fromRegistry(
-        "b0bl0blawslawbl0g/session-sn-aws",
+        "b0bl0blawslawbl0g/session-sn-aws:1.0.0",
       ),
       essential: true,
       privileged: false,
@@ -344,7 +344,7 @@ export class SessionStack extends cdk.Stack {
     const storageServerContainer = taskDefinition.addContainer(containerId, {
       containerName: "ss-session",
       image: ecs.ContainerImage.fromRegistry(
-        "b0bl0blawslawbl0g/session-ss-aws",
+        "b0bl0blawslawbl0g/session-ss-aws:1.0.0",
       ),
       essential: true,
       privileged: false,
@@ -424,7 +424,7 @@ export class SessionStack extends cdk.Stack {
     const lokinetContainer = taskDefinition.addContainer(containerId, {
       containerName: "lokinet-session",
       image: ecs.ContainerImage.fromRegistry(
-        "b0bl0blawslawbl0g/session-lokinet-aws",
+        "b0bl0blawslawbl0g/session-lokinet-aws:1.0.0",
       ),
       essential: true,
       privileged: false,
