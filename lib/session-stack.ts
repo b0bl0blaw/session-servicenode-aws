@@ -235,6 +235,8 @@ export class SessionStack extends cdk.Stack {
 
     ecsSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(1090));
 
+    ecsSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(22020));
+
     ecsSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22020));
 
     ecsSecurityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22021));
@@ -344,7 +346,7 @@ export class SessionStack extends cdk.Stack {
     const storageServerContainer = taskDefinition.addContainer(containerId, {
       containerName: "ss-session",
       image: ecs.ContainerImage.fromRegistry(
-        "b0bl0blawslawbl0g/session-ss-aws:1.0.0",
+        "b0bl0blawslawbl0g/session-ss-aws:1.0.1",
       ),
       essential: true,
       privileged: false,
@@ -354,6 +356,11 @@ export class SessionStack extends cdk.Stack {
         streamPrefix: "ecs",
       }),
       portMappings: [
+        {
+          containerPort: 22020,
+          hostPort: 22020,
+          protocol: Protocol.UDP,
+        },
         {
           containerPort: 22020,
           hostPort: 22020,
