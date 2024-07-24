@@ -1,0 +1,13 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build and push the SN Docker image
+      run: cd .docker && docker build -t b0bl0blawslawbl0g/session-sn-aws:${{github.run_number}} . && docker push b0bl0blawslawbl0g/session-sn-aws:${{github.run_number}}
