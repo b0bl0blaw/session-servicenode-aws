@@ -279,6 +279,7 @@ export class SessionStack extends cdk.Stack {
       ),
       essential: true,
       privileged: false,
+      memoryLimitMiB: 3072,
       memoryReservationMiB: 2048,
       logging: ecs.LogDriver.awsLogs({
         logGroup: params.logGroup,
@@ -350,6 +351,7 @@ export class SessionStack extends cdk.Stack {
       ),
       essential: true,
       privileged: false,
+      memoryLimitMiB: 768,
       memoryReservationMiB: 512,
       logging: ecs.LogDriver.awsLogs({
         logGroup: params.logGroup,
@@ -435,6 +437,7 @@ export class SessionStack extends cdk.Stack {
       ),
       essential: true,
       privileged: false,
+      memoryLimitMiB: 768,
       memoryReservationMiB: 512,
       logging: ecs.LogDriver.awsLogs({
         logGroup: params.logGroup,
